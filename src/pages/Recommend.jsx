@@ -36,6 +36,7 @@ const Recommend = () => {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [applicationDate, setApplicationDate] = useState("");
 
   useEffect(() => {
     navigator.geolocation.getCurrentPosition(
@@ -47,7 +48,13 @@ const Recommend = () => {
     );
   }, []);
 
+  const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+
   const handleSubmit = async () => {
+    if (!applicationDate) {
+      setError("Please select a date for fertilizer application.");
+      return;
+    }
     setLoading(true);
     setError(null);
     setResult(null);
@@ -59,6 +66,7 @@ const Recommend = () => {
         crop_growth_stage: stage,
         season,
         irrigation_type: irrigation,
+        application_date: applicationDate,
       });
       setResult(res.data);
     } catch (err) {
@@ -143,6 +151,23 @@ const Recommend = () => {
               <SegmentControl options={SEASONS} value={season} onChange={setSeason} />
             </div>
 
+            {/* Application Date Picker */}
+            <div className="mb-7">
+              <label className="block text-xs uppercase tracking-widest text-gray-400 font-semibold mb-2">
+                Planned Application Date
+              </label>
+              <input
+                type="date"
+                min={today}
+                value={applicationDate}
+                onChange={(e) => setApplicationDate(e.target.value)}
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-700 focus:outline-none focus:border-emerald-800 focus:ring-2 focus:ring-emerald-800/10 transition"
+              />
+              <p className="text-xs text-gray-400 mt-1.5">
+                Past dates are disabled. Select when you plan to apply the fertilizer.
+              </p>
+            </div>
+
             {error && (
               <div className="mb-4 px-4 py-3 bg-red-50 border border-red-100 rounded-xl text-sm text-red-600">
                 {error}
@@ -173,14 +198,47 @@ const Recommend = () => {
               </div>
             ) : (
               <>
-                {/* Fertilizer recommendation */}
-                <div className="bg-emerald-950 rounded-2xl p-7 relative overflow-hidden">
+                {/* Rain Alert — shown instead of recommendation when heavy rain forecast */}
+                {result.rain_alert && (
+                  <div className="bg-blue-950 rounded-2xl p-7 relative overflow-hidden">
+                    <div className="absolute -bottom-8 -right-8 w-40 h-40 rounded-full bg-blue-400/10" />
+                    <div className="flex items-center gap-3 mb-4">
+                      <span className="text-4xl">🌧️</span>
+                      <div>
+                        <p className="text-xs uppercase tracking-widest text-blue-300/70 font-semibold">Rain Alert</p>
+                        <h2 className="text-2xl font-bold text-white">Delay Application</h2>
+                      </div>
+                    </div>
+                    <div className="bg-white/10 rounded-xl px-4 py-3 mb-4">
+                      <p className="text-xs text-blue-300/60 uppercase tracking-widest mb-1">Forecast Rainfall (48hrs)</p>
+                      <p className="text-3xl font-bold text-white">{result.rainfall_48h}
+                        <span className="text-sm font-normal text-white/50 ml-1">mm</span>
+                      </p>
+                    </div>
+                    <p className="text-blue-200/70 text-sm leading-relaxed">{result.message}</p>
+                    <div className="mt-4 bg-white/5 rounded-xl px-4 py-3 flex gap-2">
+                      <span className="text-sm mt-0.5">💡</span>
+                      <p className="text-xs text-blue-200/50 leading-relaxed">
+                        Fertilizer applied before heavy rain is washed into waterways before the crop can absorb it —
+                        wasting your investment and polluting water sources. Check back when the forecast clears.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Fertilizer recommendation — hidden during rain alert */}
+                {!result.rain_alert && <div className="bg-emerald-950 rounded-2xl p-7 relative overflow-hidden">
                   <div className="absolute -bottom-8 -right-8 w-40 h-40 rounded-full bg-emerald-400/10" />
                   <p className="text-xs uppercase tracking-widest text-emerald-400/70 font-semibold mb-2">
                     Recommended Fertilizer
                   </p>
                   <h2 className="text-4xl font-bold text-white mb-1">{result.fertilizer}</h2>
-                  <p className="text-emerald-300/60 text-sm mb-6">{crop} · {stage} Stage</p>
+                  <p className="text-emerald-300/60 text-sm mb-1">{crop} · {stage} Stage</p>
+                  {result.application_date && (
+                    <p className="text-emerald-400/70 text-xs mb-6">
+                      📅 Planned application: <span className="font-semibold text-emerald-300">{result.application_date}</span>
+                    </p>
+                  )}
 
                   <div className="grid grid-cols-2 gap-3">
                     <div className="bg-white/10 rounded-xl p-4">
@@ -201,7 +259,7 @@ const Recommend = () => {
                     <span className="text-sm mt-0.5">📋</span>
                     <p className="text-xs text-emerald-200/60 leading-relaxed">{result.basis}</p>
                   </div>
-                </div>
+                </div>}
 
                 {/* Weather */}
                 {result.weather && (

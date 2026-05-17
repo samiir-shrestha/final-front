@@ -142,7 +142,14 @@ const Dashboard = () => {
                     <p className="text-xs text-gray-400 truncate">
                       {item.crop_growth_stage} · {item.season} · {item.dosage_ropani} kg/ropani
                     </p>
-                    <p className="text-xs text-gray-300 font-mono mt-0.5">{item.lat}, {item.lon}</p>
+                    {item.application_date && (
+                      <p className="text-xs text-emerald-600 mt-0.5 font-medium">
+                        📅 Apply on: {item.application_date}
+                      </p>
+                    )}
+                    <p className="text-xs text-gray-300 font-mono mt-0.5">
+                      Saved: {item.created_at ? new Date(item.created_at).toLocaleString() : "—"}
+                    </p>
                   </div>
                 </div>
               ))}
