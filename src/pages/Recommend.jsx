@@ -116,7 +116,7 @@ const LocationPicker = ({ lat, lon, locationLabel, onLocationSelect }) => {
   const doSearch = async (q) => {
     setSearching(true);
     try {
-      const res  = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=5`, { headers: { "Accept-Language": "en" } });
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=5`, { headers: { "Accept-Language": "en" } });
       setResults(await res.json());
     } catch { setResults([]); }
     finally { setSearching(false); }
@@ -145,18 +145,14 @@ const LocationPicker = ({ lat, lon, locationLabel, onLocationSelect }) => {
   const useGPS = async () => {
     setGpsLoading(true);
     setGpsError(false);
-
-    // Check permission state first
     try {
       const permission = await navigator.permissions.query({ name: "geolocation" });
       if (permission.state === "denied") {
-        setGpsLoading(false);
-        setGpsError(true);
+        setGpsLoading(false); setGpsError(true);
         setTimeout(() => setGpsError(false), 4000);
         return;
       }
     } catch {}
-
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         const sLat  = pos.coords.latitude.toFixed(4);
@@ -166,8 +162,7 @@ const LocationPicker = ({ lat, lon, locationLabel, onLocationSelect }) => {
         setGpsLoading(false);
       },
       () => {
-        setGpsLoading(false);
-        setGpsError(true);
+        setGpsLoading(false); setGpsError(true);
         setTimeout(() => setGpsError(false), 4000);
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
@@ -177,7 +172,6 @@ const LocationPicker = ({ lat, lon, locationLabel, onLocationSelect }) => {
   return (
     <div className="mb-6 relative">
       <label className="block text-xs uppercase tracking-widest text-gray-400 font-semibold mb-2">Field Location</label>
-
       <button onClick={() => setOpen(true)}
         className="w-full flex items-center gap-3 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-left transition hover:border-emerald-500 focus:outline-none"
       >
@@ -202,8 +196,7 @@ const LocationPicker = ({ lat, lon, locationLabel, onLocationSelect }) => {
                 </div>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
-                  <input ref={inputRef} type="text" value={query} onChange={handleQueryChange}
-                    placeholder="Search places…"
+                  <input ref={inputRef} type="text" value={query} onChange={handleQueryChange} placeholder="Search places…"
                     className="w-full pl-9 pr-8 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/10 transition"
                   />
                   {searching && <span className="absolute right-3 top-1/2 -translate-y-1/2"><span className="w-3 h-3 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin inline-block" /></span>}
@@ -256,6 +249,7 @@ const LocationPicker = ({ lat, lon, locationLabel, onLocationSelect }) => {
                         <p className="text-xs text-gray-400">Detect via GPS</p>
                       </div>
                     </button>
+
                     {gpsError && (
                       <div className="mx-5 mb-2 px-3 py-2 bg-red-50 border border-red-100 rounded-lg flex items-center gap-2">
                         <span className="text-sm">🔒</span>
@@ -297,9 +291,7 @@ const LocationPicker = ({ lat, lon, locationLabel, onLocationSelect }) => {
                   onClick={() => { if (pendingLabel) saveHistory(pendingLabel, mapLat, mapLon); setOpen(false); }}
                   disabled={!mapLat || !mapLon}
                   className="w-full py-2.5 bg-emerald-950 hover:bg-emerald-900 text-white text-sm font-semibold rounded-xl transition disabled:opacity-40"
-                >
-                  Confirm Location
-                </button>
+                >Confirm Location</button>
               </div>
             </div>
 
@@ -313,7 +305,6 @@ const LocationPicker = ({ lat, lon, locationLabel, onLocationSelect }) => {
                 📍 Click or drag to move pin
               </div>
             </div>
-
           </div>
         </div>
       )}
