@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { downloadReport } from "../services/pdfReport";
 import Navbar from "../components/Navbar";
 import API from "../services/api";
 
@@ -312,11 +313,19 @@ const LocationPicker = ({ lat, lon, locationLabel, onLocationSelect }) => {
   );
 };
 
+// Auto-detect season from current month
+function getCurrentSeason() {
+  const month = new Date().getMonth() + 1; // 1-12
+  if (month >= 3 && month <= 5)  return "Spring";  // Mar-May
+  if (month >= 6 && month <= 9)  return "Summer";  // Jun-Sep (monsoon/summer)
+  return "Winter";                                   // Oct-Feb
+}
+
 const Recommend = () => {
   const [crop, setCrop]                       = useState("Rice");
   const [stage, setStage]                     = useState("Vegetative");
   const [irrigation, setIrrigation]           = useState("Canal");
-  const [season, setSeason]                   = useState("Summer");
+  const [season, setSeason]                   = useState(getCurrentSeason);
   const [lat, setLat]                         = useState("");
   const [lon, setLon]                         = useState("");
   const [locationLabel, setLocationLabel]     = useState("");
@@ -324,6 +333,8 @@ const Recommend = () => {
   const [result, setResult]                   = useState(null);
   const [loading, setLoading]                 = useState(false);
   const [error, setError]                     = useState(null);
+  const [preview, setPreview]                 = useState(null);
+  const [previewLoading, setPreviewLoading]   = useState(false);
 
   const today = new Date().toISOString().split("T")[0];
 
@@ -333,11 +344,25 @@ const Recommend = () => {
       const sLon  = pos.coords.longitude.toFixed(4);
       const label = await reverseGeocode(sLat, sLon);
       setLat(sLat); setLon(sLon); setLocationLabel(label);
+      fetchPreview(sLat, sLon);
     }, () => {});
   }, []);
 
+  const fetchPreview = async (sLat, sLon) => {
+    setPreviewLoading(true);
+    setPreview(null);
+    try {
+      const res = await API.get(
+        `/data?lat=${sLat}&lon=${sLon}&crop=Rice&season=Summer&stage=Vegetative&irrigation=Canal`
+      );
+      setPreview(res.data);
+    } catch {}
+    finally { setPreviewLoading(false); }
+  };
+
   const handleLocationSelect = (sLat, sLon, label) => {
     setLat(sLat); setLon(sLon); setLocationLabel(label);
+    fetchPreview(sLat, sLon);
   };
 
   const handleSubmit = async () => {
@@ -398,17 +423,11 @@ const Recommend = () => {
               >{IRRIGATION.map((i) => <option key={i}>{i}</option>)}</select>
             </div>
 
-            <div className="mb-5">
-              <label className="block text-xs uppercase tracking-widest text-gray-400 font-semibold mb-2">Season</label>
-              <SegmentControl options={SEASONS} value={season} onChange={setSeason} />
-            </div>
-
             <div className="mb-7">
               <label className="block text-xs uppercase tracking-widest text-gray-400 font-semibold mb-2">Planned Application Date</label>
               <input type="date" min={today} value={applicationDate} onChange={(e) => setApplicationDate(e.target.value)}
                 className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-700 focus:outline-none focus:border-emerald-800 transition"
               />
-              <p className="text-xs text-gray-400 mt-1.5">Past dates are disabled.</p>
             </div>
 
             {error && <div className="mb-4 px-4 py-3 bg-red-50 border border-red-100 rounded-xl text-sm text-red-600">{error}</div>}
@@ -421,13 +440,86 @@ const Recommend = () => {
           </div>
 
           <div className="space-y-4">
-            {!result ? (
+
+            {/* Weather preview — shown as soon as location is selected */}
+            {previewLoading && (
+              <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center gap-3">
+                <span className="w-4 h-4 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin shrink-0" />
+                <p className="text-xs text-gray-400">Fetching soil and weather for this location…</p>
+              </div>
+            )}
+
+            {preview && !result && (
+              <>
+                <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center text-lg">🌦️</div>
+                    <div>
+                      <h2 className="font-bold text-gray-800 text-sm">Current Weather</h2>
+                      <p className="text-xs text-gray-400">Live data for selected location</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-3">
+                    {[
+                      { icon: "🌡️", val: `${Math.round(preview.Temperature)}°C`, label: "Temp" },
+                      { icon: "💧", val: `${Math.round(preview.Humidity)}%`,      label: "Humidity" },
+                      { icon: "🌧️", val: `${Math.round(preview.Rainfall)}mm`,    label: "Rainfall" },
+                    ].map((s) => (
+                      <div key={s.label} className="bg-stone-50 rounded-xl p-4 text-center">
+                        <p className="text-xl mb-2">{s.icon}</p>
+                        <p className="text-xl font-bold text-emerald-800 leading-none">{s.val}</p>
+                        <p className="text-xs text-gray-400 uppercase tracking-wide mt-1">{s.label}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center text-lg">🌍</div>
+                    <div>
+                      <h2 className="font-bold text-gray-800 text-sm">Soil Analysis</h2>
+                      <p className="text-xs text-gray-400">{preview.Soil_Type} soil · OC: {preview.Organic_Carbon}%</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    {[
+                      { key: "pH", val: preview.Soil_pH,           max: 14  },
+                      { key: "N",  val: preview.Nitrogen_Level,    max: 200 },
+                      { key: "P",  val: preview.Phosphorus_Level,  max: 200 },
+                      { key: "K",  val: preview.Potassium_Level,   max: 200 },
+                    ].map(({ key, val, max }) => (
+                      <div key={key} className="bg-stone-50 rounded-xl p-4">
+                        <div className="flex items-baseline justify-between mb-2">
+                          <span className="text-xs font-bold uppercase tracking-widest text-gray-400">{key}</span>
+                          <span className="font-bold text-emerald-800 text-lg leading-none">{val}</span>
+                        </div>
+                        <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                          <div className="h-full bg-gradient-to-r from-emerald-700 to-emerald-400 rounded-full transition-all duration-700"
+                            style={{ width: `${Math.min((parseFloat(val) / max) * 100, 100)}%` }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-2xl p-6 text-center border-2 border-dashed border-gray-100">
+                  <p className="text-2xl mb-2">🔍</p>
+                  <p className="text-sm font-semibold text-gray-600 mb-1">Ready to get your recommendation</p>
+                  <p className="text-xs text-gray-400">Fill in crop details and click "Get Recommendation"</p>
+                </div>
+              </>
+            )}
+
+            {!result && !preview && !previewLoading && (
               <div className="bg-white rounded-2xl p-14 text-center border-2 border-dashed border-gray-100">
                 <p className="text-4xl mb-4">🌾</p>
-                <h3 className="font-bold text-gray-700 mb-1">Results will appear here</h3>
-                <p className="text-sm text-gray-400">Select your field location and click "Get Recommendation"</p>
+                <h3 className="font-bold text-gray-700 mb-1">Select a location to begin</h3>
+                <p className="text-sm text-gray-400">Soil and weather data will appear automatically</p>
               </div>
-            ) : (
+            )}
+
+            {result && (
               <>
                 {result.rain_alert && (
                   <div className="bg-blue-950 rounded-2xl p-7 relative overflow-hidden">
@@ -470,6 +562,18 @@ const Recommend = () => {
                       <span className="text-sm mt-0.5">📋</span>
                       <p className="text-xs text-emerald-200/60 leading-relaxed">{result.basis}</p>
                     </div>
+                    <button
+                      onClick={() => downloadReport({
+                        ...result,
+                        crop: crop,
+                        crop_growth_stage: stage,
+                        lat: lat,
+                        lon: lon,
+                      })}
+                      className="mt-4 w-full py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm font-semibold flex items-center justify-center gap-2 transition"
+                    >
+                      ⬇️ Download PDF Report
+                    </button>
                   </div>
                 )}
 

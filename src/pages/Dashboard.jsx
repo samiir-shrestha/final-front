@@ -35,7 +35,7 @@ const DetailModal = ({ item, onClose }) => {
           <div className="absolute -bottom-6 -right-6 w-32 h-32 rounded-full bg-emerald-400/10" />
           <div className="flex items-start justify-between mb-1">
             <p className="text-xs uppercase tracking-widest text-emerald-400/70 font-semibold">Recommended Fertilizer</p>
-            <button onClick={onClose} className="text-white/40 hover:text-white transition text-xl leading-none">✕</button>
+            <button onClick={onClose} className="w-9 h-9 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/25 text-white/70 hover:text-white transition text-lg font-bold">✕</button>
           </div>
           <h2 className="text-3xl font-bold text-white mb-1">{item.fertilizer}</h2>
           <p className="text-emerald-300/60 text-sm">
@@ -191,9 +191,7 @@ const Dashboard = () => {
               Welcome, <span className="text-emerald-800">{user?.name}</span>
             </h1>
           </div>
-          <button onClick={() => navigate("/recommend")}
-            className="flex items-center gap-2 bg-emerald-950 hover:bg-emerald-900 text-white px-6 py-3 rounded-full text-sm font-semibold shadow transition hover:-translate-y-0.5 active:scale-95"
-          >+ New Recommendation</button>
+
         </div>
 
         {/* Stats row */}
