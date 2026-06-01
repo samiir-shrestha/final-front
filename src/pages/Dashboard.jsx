@@ -18,8 +18,26 @@ const FERT_COLORS = {
 const STAGE_ICONS = { Sowing: "🌱", Vegetative: "🌿", Flowering: "🌸", Harvest: "🌾" };
 const SEASON_ICONS = { Summer: "☀️", Winter: "❄️", Spring: "🌤️" };
 
+async function reverseGeocode(lat, lon) {
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`,
+      { headers: { "Accept-Language": "en" } }
+    );
+    const data = await res.json();
+    return data.display_name?.split(",").slice(0, 3).join(", ") || `${lat}, ${lon}`;
+  } catch { return `${lat}, ${lon}`; }
+}
+
 // ── Detail Modal ──────────────────────────────────────────
 const DetailModal = ({ item, onClose }) => {
+  const [locationLabel, setLocationLabel] = useState(`${item.lat}, ${item.lon}`);
+
+  useEffect(() => {
+    if (!item.lat || !item.lon) return;
+    reverseGeocode(item.lat, item.lon).then(setLocationLabel);
+  }, [item.lat, item.lon]);
+
   if (!item) return null;
   const c = FERT_COLORS[item.fertilizer] || { bg: "bg-gray-50", text: "text-gray-700", dot: "bg-gray-400" };
 
@@ -120,11 +138,13 @@ const DetailModal = ({ item, onClose }) => {
 
         {/* Footer */}
         <div className="px-5 py-4 border-t border-gray-100 flex items-center justify-between bg-stone-50">
-          <p className="text-xs text-gray-400 font-mono">{item.lat}, {item.lon}</p>
-          <div className="flex gap-2">
-            <button onClick={() => downloadReport(item)}
+          <div className="flex items-center gap-1.5 min-w-0">
+            <p className="text-xs text-gray-400 truncate">{locationLabel}</p>
+          </div>
+          <div className="flex gap-2 shrink-0 ml-3">
+            <button onClick={() => downloadReport({ ...item, location_label: locationLabel })}
               className="px-4 py-2 bg-stone-100 hover:bg-stone-200 text-gray-700 text-sm font-semibold rounded-xl transition flex items-center gap-1.5"
-            >⬇️ Download PDF</button>
+            >⬇️ Download Report</button>
             <button onClick={onClose}
               className="px-5 py-2 bg-emerald-950 hover:bg-emerald-900 text-white text-sm font-semibold rounded-xl transition"
             >Close</button>
@@ -134,7 +154,6 @@ const DetailModal = ({ item, onClose }) => {
     </div>
   );
 };
-
 // ── Dashboard ─────────────────────────────────────────────
 const Dashboard = () => {
   const navigate           = useNavigate();

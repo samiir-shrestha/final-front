@@ -2,6 +2,10 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../services/api";
 
+// ── Replace this import with your actual image ──
+import farmImage from "../assets/ferti.jpg";
+// const farmImage = ""; // placeholder — swap with your image path
+
 const Auth = () => {
   const navigate = useNavigate();
   const [isLogin, setIsLogin] = useState(true);
@@ -47,8 +51,19 @@ const Auth = () => {
   return (
     <div className="flex min-h-screen bg-stone-50">
       {/* ── Left decorative panel ── */}
-      <div className="hidden md:flex w-1/2 bg-emerald-950 flex-col justify-end p-14 relative overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_20%_80%,rgba(52,211,153,0.18),transparent_60%)]" />
+      <div className="hidden md:flex w-1/2 flex-col justify-end p-14 relative overflow-hidden bg-emerald-950">
+
+        {/* ── Background image — replace `farmImage` with your own import ── */}
+        <img
+          src={farmImage}
+          alt="Farm background"
+          className="absolute inset-0 w-full h-full object-cover opacity-40"
+        />
+
+        {/* Overlay gradient on top of image */}
+        <div className="absolute inset-0 bg-gradient-to-t from-emerald-950 via-emerald-950/60 to-transparent" />
+
+        {/* Content */}
         <div className="relative z-10">
           <span className="text-xs tracking-widest uppercase text-emerald-400 font-semibold">
             Smart Farming Platform
@@ -60,11 +75,7 @@ const Auth = () => {
           <p className="mt-4 text-white/40 text-sm leading-relaxed max-w-xs">
             AI-powered fertilizer recommendations combining real-time soil data and weather conditions.
           </p>
-          <div className="flex gap-2 mt-10">
-            <span className="w-6 h-2 rounded-full bg-emerald-400" />
-            <span className="w-2 h-2 rounded-full bg-white/20" />
-            <span className="w-2 h-2 rounded-full bg-white/20" />
-          </div>
+          
         </div>
       </div>
 
